@@ -321,31 +321,71 @@ function setupTestStats() {
   }
 }
 
+// Todo: While this is an improvement, we still want to log the relevant source map
 function takeOverConsole() {
   function intercept(method) {
-    var original = console[method];
-    console[method] = function() {
-      var doDefault, message;
-      var args = Array.prototype.slice.apply(arguments);
-      if (Testem.handleConsoleMessage) {
-        message = decycle(args).join(' ');
-        doDefault = Testem.handleConsoleMessage(message);
-      }
-      if (doDefault !== false) {
-        args.unshift('console-' + method);
-        emit.apply(console, args);
-        if (original && original.apply) {
-          // Do this for normal browsers
-          original.apply(console, arguments);
-        } else if (original) {
-          // Do this for IE
-          if (!message) {
-            message = decycle(args).join(' ');
+    // Untested in Edge/IE11
+    var isOpera = !!window.opera || navigator.userAgent.indexOf(' OPR/') >= 0;
+    var isChrome = !!window.chrome && !!window.chrome.webstore;
+    var isIE = /*@cc_on!@*/false || !!document.documentMode;
+    var isEdge = !isIE && !!window.StyleMedia;
+    // var isWebkit = (/WebKit/).test(navigator.userAgent);
+    var isPhantom = (/PhantomJS/).test(navigator.userAgent);
+    var stackPos = isOpera || isChrome ? 2 : 1;
+    var needsThrowing = isIE || isEdge || isPhantom;
+
+    var original = console[method].bind(console);
+    Object.defineProperty(console, method, {
+      configurable: true, // Required to allow us to alter it
+      value: function MyError() {
+        var err = new Error();
+        if (needsThrowing) { // Older WebKit used by PhantomJS apparently required thrown
+          try { // Stack not yet defined until thrown per https://docs.microsoft.com/en-us/scripting/javascript/reference/stack-property-error-javascript
+            throw err;
+          } catch (e) {
+            err = e;
           }
-          original(message);
+          stackPos = isPhantom ? 1 : 2;
+        }
+        var doDefault, message;
+        var args = Array.prototype.slice.apply(arguments);
+
+        if (err.stack) {
+          var st = err.stack.split('\n')[stackPos]; // We could utilize the whole stack after the 0th index
+          var argEnd = args.length - 1;
+          [].slice.call(args).reverse().some(function(arg, i) {
+            var pos = argEnd - i;
+            if (typeof args[pos] !== 'string') {
+              return false;
+            }
+            if (typeof args[0] === 'string' && args[0].indexOf('%') > -1) { pos = 0; } // If formatting
+            args[pos] += ' \u00a0 (' + st.slice(0, st.lastIndexOf(':')) // Strip out character count
+              .slice(st.lastIndexOf('/') + 1) + ')'; // Leave only path and line (which also avoids ":" changing Safari console formatting)
+            return true;
+          });
+        }
+
+        if (Testem.handleConsoleMessage) {
+          message = decycle(args).join(' ');
+          doDefault = Testem.handleConsoleMessage(message);
+        }
+        if (doDefault !== false) {
+          args.unshift('console-' + method);
+          emit.apply(null, args);
+          if (original && original.apply) {
+            // Do this for normal browsers
+            return original.apply(null, arguments);
+          }
+          if (original) {
+            // Do this for IE
+            if (!message) {
+              message = decycle(args).join(' ');
+            }
+            return original(message);
+          }
         }
       }
-    };
+    });
   }
   var methods = ['log', 'warn', 'error', 'info'];
   for (var i = 0; i < methods.length; i++) {
