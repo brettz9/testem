@@ -9,6 +9,9 @@
   ],
   "version": "1.15.0",
   "author": "Toby Ho <airportyh@gmail.com>",
+  "contributors": [
+    "Brett Zamir"
+  ],
   "repository": {
     "type": "git",
     "url": "git://github.com/testem/testem.git"
@@ -16,9 +19,9 @@
   "bugs": {
     "url": "http://github.com/testem/testem/issues"
   },
-  "engines": [
-    "node >= 0.8.0"
-  ],
+  "engines": {
+    "node": ">= 0.8.0"
+  },
   "license": "MIT",
   "dependencies": {
     "backbone": "^1.1.2",
@@ -40,8 +43,10 @@
     "node-notifier": "^5.0.1",
     "npmlog": "^4.0.0",
     "printf": "^0.2.3",
+    "promise-streams": "^1.0.1",
     "rimraf": "^2.4.4",
     "socket.io": "1.6.0",
+    "sourcemap-transformer": "https://github.com/brettz9/sourcemap-transformer",
     "spawn-args": "^0.2.0",
     "styled_string": "0.0.1",
     "tap-parser": "^5.1.0",
@@ -77,6 +82,7 @@
     "eslint-plugin-chai-expect": "^1.1.1",
     "eslint-plugin-mocha": "^4.3.0",
     "mocha": "^3.0.0",
+    "phantomjs-prebuilt": "^2.1.14",
     "request": "^2.51.0",
     "saucie": "^3.0.1",
     "shelljs": "^0.7.0",
